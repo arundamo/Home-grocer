@@ -8,6 +8,7 @@ export function SearchItems() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -15,16 +16,29 @@ export function SearchItems() {
     async function runSearch() {
       if (!query.trim()) {
         setResults([]);
+        setError(null);
         return;
       }
 
       setLoading(true);
-      const response = await fetch(`/api/items?search=${encodeURIComponent(query)}`, {
-        signal: controller.signal,
-      });
-      const payload = await response.json();
-      setResults(payload.items ?? []);
-      setLoading(false);
+      setError(null);
+      try {
+        const response = await fetch(`/api/items?search=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          throw new Error("Search failed");
+        }
+        const payload = await response.json();
+        setResults(payload.items ?? []);
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          setResults([]);
+          setError("Unable to search items right now.");
+        }
+      } finally {
+        setLoading(false);
+      }
     }
 
     void runSearch();
@@ -42,6 +56,7 @@ export function SearchItems() {
         placeholder="Type an item name"
       />
       {loading ? <p className="mt-2 text-sm text-gray-500">Searching...</p> : null}
+      {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
       <ul className="mt-4 space-y-3">
         {results.map((item) => (
           <li key={item.id} className="rounded border border-gray-100 p-3">
@@ -49,8 +64,8 @@ export function SearchItems() {
             <p className="text-sm text-gray-600">Category: {item.category ?? "Uncategorized"}</p>
             <ul className="mt-2 list-disc pl-5 text-sm text-gray-700">
               {item.stock.length > 0 ? (
-                item.stock.map((stock, index) => (
-                  <li key={`${stock.location_id}-${index}`}>
+                item.stock.map((stock) => (
+                  <li key={stock.location_id}>
                     {stock.location_name}: {stock.quantity} in stock
                     {stock.expiry ? ` (expires ${stock.expiry})` : ""}
                   </li>

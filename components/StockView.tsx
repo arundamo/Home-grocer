@@ -29,40 +29,56 @@ export function StockView({ refreshToken }: Props) {
   const [locations, setLocations] = useState<Location[]>([]);
   const [inventory, setInventory] = useState<InventoryRecord[]>([]);
   const [selectedLocationId, setSelectedLocationId] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
-      const [locationsResponse, inventoryResponse] = await Promise.all([
-        fetch("/api/locations"),
-        fetch("/api/inventory"),
-      ]);
+      try {
+        setError(null);
+        const [locationsResponse, inventoryResponse] = await Promise.all([
+          fetch("/api/locations"),
+          fetch("/api/inventory"),
+        ]);
 
-      const locationsPayload = await locationsResponse.json();
-      const inventoryPayload = await inventoryResponse.json();
+        if (!locationsResponse.ok || !inventoryResponse.ok) {
+          throw new Error("Failed to load stock");
+        }
 
-      const nextLocations: Location[] = locationsPayload.locations ?? [];
-      setLocations(nextLocations);
+        const locationsPayload = await locationsResponse.json();
+        const inventoryPayload = await inventoryResponse.json();
 
-      if (nextLocations.length > 0 && !selectedLocationId) {
-        setSelectedLocationId(nextLocations[0].id);
+        const nextLocations: Location[] = locationsPayload.locations ?? [];
+        setLocations(nextLocations);
+
+        setSelectedLocationId((current) => {
+          if (nextLocations.length === 0) {
+            return "";
+          }
+          if (current && nextLocations.some((location) => location.id === current)) {
+            return current;
+          }
+          return nextLocations[0].id;
+        });
+
+        const rows: RawInventory[] = inventoryPayload.inventory ?? [];
+        const normalized: InventoryRecord[] = rows
+          .filter((row) => row.items && row.locations)
+          .map((row) => ({
+            id: row.id,
+            quantity: row.quantity,
+            expiry: row.expiry,
+            item: row.items,
+            location: row.locations,
+          }));
+
+        setInventory(normalized);
+      } catch {
+        setError("Unable to load stock right now.");
       }
-
-      const rows: RawInventory[] = inventoryPayload.inventory ?? [];
-      const normalized: InventoryRecord[] = rows
-        .filter((row) => row.items && row.locations)
-        .map((row) => ({
-          id: row.id,
-          quantity: row.quantity,
-          expiry: row.expiry,
-          item: row.items,
-          location: row.locations,
-        }));
-
-      setInventory(normalized);
     }
 
     void loadData();
-  }, [refreshToken, selectedLocationId]);
+  }, [refreshToken]);
 
   const visibleRows = useMemo(
     () => inventory.filter((row) => row.location.id === selectedLocationId),
@@ -87,6 +103,7 @@ export function StockView({ refreshToken }: Props) {
           </button>
         ))}
       </div>
+      {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
       <ul className="mt-4 space-y-2">
         {visibleRows.length > 0 ? (
           visibleRows.map((row) => (

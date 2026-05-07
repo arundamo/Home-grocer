@@ -17,6 +17,7 @@ export function useImageRecognition() {
     setError(null);
 
     try {
+      // Placeholder for real Gemini/GPT-4o image recognition integration.
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       return [
@@ -31,7 +32,8 @@ export function useImageRecognition() {
           barcode: "1234567890123",
         },
       ];
-    } catch {
+    } catch (error) {
+      console.error(error);
       setError("Failed to analyze image.");
       return [];
     } finally {

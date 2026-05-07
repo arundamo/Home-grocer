@@ -73,9 +73,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     const name = typeof body.name === "string" ? body.name.trim() : "";
-    const category = typeof body.category === "string" ? body.category.trim() : null;
-    const barcode = typeof body.barcode === "string" ? body.barcode.trim() : null;
+    const category = typeof body.category === "string" ? body.category.trim() || null : null;
+    const barcode = typeof body.barcode === "string" ? body.barcode.trim() || null : null;
     const locationId = typeof body.location_id === "string" ? body.location_id : null;
+    const locationName = typeof body.location_name === "string" ? body.location_name.trim() : null;
     const quantity = Number.isInteger(body.quantity) ? body.quantity : 0;
     const expiry = typeof body.expiry === "string" && body.expiry ? body.expiry : null;
 
@@ -93,11 +94,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: itemError.message }, { status: 500 });
     }
 
-    if (locationId) {
+    let targetLocationId = locationId;
+
+    if (!targetLocationId && locationName) {
+      const { data: createdLocation, error: locationError } = await supabase
+        .from("locations")
+        .upsert({ name: locationName, parent_id: null }, { onConflict: "name,parent_id" })
+        .select("id")
+        .single();
+
+      if (locationError) {
+        return NextResponse.json({ error: locationError.message }, { status: 500 });
+      }
+
+      targetLocationId = createdLocation.id;
+    }
+
+    if (targetLocationId) {
       const { error: inventoryError } = await supabase.from("inventory").upsert(
         {
           item_id: item.id,
-          location_id: locationId,
+          location_id: targetLocationId,
           quantity,
           expiry,
         },

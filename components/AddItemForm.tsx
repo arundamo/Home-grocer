@@ -2,13 +2,18 @@
 
 import { FormEvent, useEffect, useState } from "react";
 
-import type { Location } from "@/lib/types";
+type SelectLocation = {
+  value: string;
+  id: string | null;
+  name: string;
+  parent_id: string | null;
+};
 
-const fallbackLocations = [
-  { id: "fallback-kitchen-1", name: "Kitchen Cabinet 1", parent_id: null },
-  { id: "fallback-kitchen-2", name: "Kitchen Cabinet 2", parent_id: null },
-  { id: "fallback-freezer", name: "Basement Freezer", parent_id: null },
-  { id: "fallback-shelf-1", name: "Pantry Shelf 1", parent_id: null },
+const fallbackLocations: SelectLocation[] = [
+  { value: "fallback-kitchen-1", id: null, name: "Kitchen Cabinet 1", parent_id: null },
+  { value: "fallback-kitchen-2", id: null, name: "Kitchen Cabinet 2", parent_id: null },
+  { value: "fallback-freezer", id: null, name: "Basement Freezer", parent_id: null },
+  { value: "fallback-shelf-1", id: null, name: "Pantry Shelf 1", parent_id: null },
 ];
 
 type Props = {
@@ -19,21 +24,35 @@ export function AddItemForm({ onItemCreated }: Props) {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
   const [barcode, setBarcode] = useState("");
-  const [locationId, setLocationId] = useState("");
+  const [locationId, setLocationId] = useState(fallbackLocations[0].value);
   const [quantity, setQuantity] = useState(1);
   const [expiry, setExpiry] = useState("");
-  const [locations, setLocations] = useState<Location[]>(fallbackLocations);
+  const [locations, setLocations] = useState<SelectLocation[]>(fallbackLocations);
   const [status, setStatus] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadLocations() {
-      const response = await fetch("/api/locations");
-      const payload = await response.json();
-      if (Array.isArray(payload.locations) && payload.locations.length > 0) {
-        setLocations(payload.locations);
-        setLocationId(payload.locations[0].id);
-      } else {
-        setLocationId(fallbackLocations[0].id);
+      try {
+        const response = await fetch("/api/locations");
+        if (!response.ok) {
+          throw new Error("Could not load locations");
+        }
+        const payload = await response.json();
+        if (Array.isArray(payload.locations) && payload.locations.length > 0) {
+          const mapped = payload.locations.map(
+            (location: { id: string; name: string; parent_id: string | null }) => ({
+              ...location,
+              value: location.id,
+            }),
+          );
+          setLocations(mapped);
+          setLocationId(mapped[0].value);
+          return;
+        }
+        setLocationId(fallbackLocations[0].value);
+      } catch {
+        setStatus("Could not load saved locations. Using predefined locations.");
+        setLocationId(fallbackLocations[0].value);
       }
     }
 
@@ -43,6 +62,8 @@ export function AddItemForm({ onItemCreated }: Props) {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const selectedLocation = locations.find((location) => location.value === locationId);
+
     const response = await fetch("/api/items", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -50,7 +71,8 @@ export function AddItemForm({ onItemCreated }: Props) {
         name,
         category,
         barcode,
-        location_id: locationId.startsWith("fallback-") ? null : locationId,
+        location_id: selectedLocation?.id,
+        location_name: selectedLocation?.name,
         quantity,
         expiry,
       }),
@@ -100,14 +122,14 @@ export function AddItemForm({ onItemCreated }: Props) {
           className="w-full rounded border border-gray-300 px-3 py-2"
         >
           {locations.map((location) => (
-            <option key={location.id} value={location.id}>
+            <option key={location.value} value={location.value}>
               {location.name}
             </option>
           ))}
         </select>
         <input
           type="number"
-          min={0}
+          min={1}
           value={quantity}
           onChange={(event) => setQuantity(Number(event.target.value))}
           className="w-full rounded border border-gray-300 px-3 py-2"
