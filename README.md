@@ -23,10 +23,14 @@ Smart Home Grocery Manager built with Next.js, Tailwind CSS, and Supabase.
 
 ## API Routes
 
-- `GET/POST /api/items`
-- `GET/PATCH/DELETE /api/items/[id]`
-- `GET/PATCH /api/inventory`
-- `GET /api/locations`
+- `GET /api/items?search=<name>`: list items, optionally filtered by name; each item includes stock locations and quantity.
+- `POST /api/items`: create item. Body: `{ name, category?, barcode?, location_id?, location_name?, quantity?, expiry? }`.
+- `GET /api/items/[id]`: fetch a single item and all stock rows for that item.
+- `PATCH /api/items/[id]`: update item fields and optionally upsert stock with `{ location_id, quantity, expiry? }`.
+- `DELETE /api/items/[id]`: delete an item (inventory rows cascade).
+- `GET /api/inventory`: list inventory rows joined with item and location metadata.
+- `PATCH /api/inventory`: upsert stock row. Body: `{ item_id, location_id, quantity, expiry? }`.
+- `GET /api/locations`: list available storage locations for dropdowns and stock grouping.
 
 ## Main UI Components
 

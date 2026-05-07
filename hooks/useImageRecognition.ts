@@ -34,7 +34,7 @@ export function useImageRecognition() {
       ];
     } catch (error) {
       console.error(error);
-      setError("Failed to analyze image.");
+      setError("Unable to process image. Please try a different photo.");
       return [];
     } finally {
       setLoading(false);

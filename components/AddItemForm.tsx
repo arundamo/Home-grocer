@@ -51,7 +51,7 @@ export function AddItemForm({ onItemCreated }: Props) {
         }
         setLocationId(fallbackLocations[0].value);
       } catch {
-        setStatus("Could not load saved locations. Using predefined locations.");
+        setStatus("Unable to connect to the server. Using offline location list.");
         setLocationId(fallbackLocations[0].value);
       }
     }

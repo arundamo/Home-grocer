@@ -34,7 +34,7 @@ export function SearchItems() {
       } catch (error) {
         if (!(error instanceof DOMException && error.name === "AbortError")) {
           setResults([]);
-          setError("Unable to search items right now.");
+          setError("Search failed. Please check your connection and try again.");
         }
       } finally {
         setLoading(false);

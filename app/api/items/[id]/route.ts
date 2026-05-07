@@ -14,7 +14,8 @@ export async function GET(_: NextRequest, { params }: { params: Promise<{ id: st
       .single();
 
     if (itemError) {
-      return NextResponse.json({ error: itemError.message }, { status: 404 });
+      const status = itemError.code === "PGRST116" ? 404 : 500;
+      return NextResponse.json({ error: itemError.message }, { status });
     }
 
     const { data: stockRows, error: stockError } = await supabase

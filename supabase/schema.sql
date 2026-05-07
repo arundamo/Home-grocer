@@ -28,8 +28,6 @@ create table if not exists public.inventory (
 
 create index if not exists idx_locations_parent_id on public.locations(parent_id);
 create index if not exists idx_items_name on public.items(name);
-create unique index if not exists uq_items_name_category
-  on public.items (lower(name), lower(coalesce(category, '')));
 create index if not exists idx_items_barcode on public.items(barcode);
 create index if not exists idx_inventory_location_id on public.inventory(location_id);
 create index if not exists idx_inventory_item_id on public.inventory(item_id);

@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getSupabaseServerClient } from "@/lib/supabase";
 
+function getLocationName(value: unknown) {
+  if (typeof value === "object" && value !== null && "name" in value) {
+    return String((value as { name?: string }).name ?? "Unknown");
+  }
+  return "Unknown";
+}
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = getSupabaseServerClient();
@@ -51,10 +58,7 @@ export async function GET(request: NextRequest) {
         quantity: row.quantity,
         expiry: row.expiry,
         location_id: row.location_id,
-        location_name:
-          typeof row.locations === "object" && row.locations !== null && "name" in row.locations
-            ? String((row.locations as { name?: string }).name ?? "Unknown")
-            : "Unknown",
+        location_name: getLocationName(row.locations),
       })),
     }));
 
